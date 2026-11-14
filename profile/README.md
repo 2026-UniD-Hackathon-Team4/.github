@@ -50,26 +50,12 @@ AI 코딩 에이전트와 함께 만든 프로젝트인데, 정작 그 코드를
 
 아래 그림은 Docker Compose로 배포했을 때의 구성입니다.
 
-```mermaid
-flowchart LR
-  subgraph project["개발자의 프로젝트"]
-    agent["코딩 에이전트<br/>(Claude Code, Codex)"] -->|"human-learning 스킬"| records["human-learning/*.md<br/>결정 기록"]
-    records --> sync["sync.mjs"]
-  end
-  browser["브라우저<br/>(React 앱)"]
-  subgraph compose["Docker Compose 프로젝트 humanlearning"]
-    fe["fe: nginx<br/>정적 파일, /api/ 전달<br/>공개 포트 HL_HTTP_PORT"]
-    be["be: Spring Boot :8080<br/>외부에 공개하지 않음"]
-    db[("H2 파일 DB<br/>볼륨 be-data")]
-  end
-  llm["Anthropic Messages API<br/>(선택)"]
-  records -.->|"프로젝트 불러오기:<br/>브라우저가 폴더를 읽음"| browser
-  browser -->|"화면과 /api/*"| fe
-  sync -->|"POST /api/auth/login<br/>POST /api/sync"| fe
-  fe -->|"/api/ → be:8080"| be
-  be --> db
-  be -.->|"키와 모델이 있을 때만"| llm
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/deployment-dark.png">
+  <img src="assets/deployment.png" alt="HumanLearning 배포 구성도. 브라우저의 요청은 공개 포트 HL_HTTP_PORT(기본 8088)로 fe 컨테이너의 nginx에 닿고, nginx는 /api/ 요청을 be 컨테이너의 Spring Boot(포트 8080, 외부 비공개)로 넘기며, Spring Boot는 볼륨 be-data의 H2 파일 DB에 저장합니다. 개발자의 프로젝트에서는 코딩 에이전트(Claude Code, Codex)가 human-learning/*.md 결정 기록을 쓰고, sync.mjs가 그 기록을 읽어 POST /api/sync로 nginx에 보냅니다. Spring Boot는 API 키와 모델이 있을 때만 Anthropic API를 부릅니다. 두 컨테이너는 GitHub의 Frontend와 Backend 저장소에서 docker compose up -d --build로 빌드합니다." width="872">
+</picture>
+
+<sub>아이콘: svgl(nginx, Node.js, Docker, GitHub, Anthropic), Lucide, spring.io(Spring Boot), h2database/h2database(H2). 로고의 상표권은 각 소유자에게 있습니다. 그림의 원본은 [`assets/deployment.html`](assets/deployment.html)이며 stack-diagram으로 만들었습니다.</sub>
 
 ## 통합 배포 (Docker Compose)
 
