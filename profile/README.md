@@ -7,7 +7,7 @@ AI 코딩 에이전트와 함께 만든 프로젝트인데, 정작 그 코드를
 | 저장소 | 내용 |
 | --- | --- |
 | [Frontend](https://github.com/2026-UniD-Hackathon-Team4/Frontend) | 웹 앱 (React, Vite) |
-| [Backend](https://github.com/2026-UniD-Hackathon-Team4/Backend) | REST API (Spring Boot), 결정 기록 스킬(`skill/human-learning/`), 통합 배포 구성(`deploy/`) |
+| [Backend](https://github.com/2026-UniD-Hackathon-Team4/Backend) | REST API (Spring Boot), 결정 기록 스킬(`skill/human-learning/`, `skill/human-learning-retro/`), 통합 배포 구성(`deploy/`) |
 
 두 저장소의 `human-learning/` 폴더에는 HumanLearning을 만들면서 이 스킬로 남긴 결정 기록이 들어 있습니다.
 
@@ -34,6 +34,92 @@ AI 코딩 에이전트와 함께 만든 프로젝트인데, 정작 그 코드를
 | 퀴즈 관문 | 설정에서 켭니다(기본 꺼짐). 켜면 아직 열어 보지 않은 결정 가운데 위에 아직 이해하지 못한 핵심 결정이 있는 결정이 잠기고, 그 핵심 결정의 퀴즈를 마쳐야 열립니다 |
 | 내용 생성 | Anthropic API 키와 모델을 주면 LLM이 프로젝트 개요, 기술 교과서, 퀴즈, 자기 설명의 피드백을 씁니다. 없거나 호출이 실패하면(30초 안에 답이 없을 때 포함) 기록으로 만든 템플릿을 씁니다 |
 | 계정 | 이메일과 비밀번호로 가입합니다. 사용자는 자기 프로젝트와 학습 진행만 봅니다 |
+
+## 분석할 수 있는 프로젝트
+
+앱이 분석하는 것은 프로젝트 루트의 `human-learning/` 폴더에 있는 결정 기록입니다. 언어와 프레임워크는 상관없습니다. 기록을 갖추는 길은 두 가지입니다.
+
+| | 개발하면서 기록한 프로젝트 | 기록 없이 완성된 프로젝트 |
+| --- | --- | --- |
+| 쓰는 스킬 | `human-learning` | `human-learning-retro` (기록 형식과 동기화는 `human-learning`) |
+| 기록을 쓰는 때 | 결정한 그 작업 안에서, 코드 변경과 함께 | 완성된 뒤, 저장소를 읽기만 하며 분석해서 |
+| 무엇을 골랐는지 | 사실 | 사실 (코드, 설정, 커밋에서 확인) |
+| 검토한 대안과 고른 이유 | 결정할 때 에이전트가 실제로 검토한 내용 | AI 추정 (`추정 근거`, `확신도`와 함께) |
+| 기록 수 | 결정마다 하나 | 사용자가 고른 후보. 답이 없으면 핵심 결정부터 최대 8개 |
+| 앱에서 보이는 모습 | 일반 결정 | 제목이 `[AI 초안]`으로 시작하는 결정 |
+
+### 개발하면서 기록한 프로젝트
+
+- 대상: `human-learning` 스킬을 설치하고 개발한 프로젝트. 에이전트(Claude Code, Codex)가 실제 선택지가 둘 이상이던 결정마다 `human-learning/NNNN-slug.md`를 썼습니다.
+- 올리는 방법: 프로젝트 루트에서 `sync.mjs`를 실행하거나, 앱의 `프로젝트 불러오기`에서 프로젝트 폴더를 고릅니다(아래 [결정 기록 스킬](#결정-기록-스킬)).
+- 보내는 것: `human-learning/*.md` 기록 원문, 각 기록의 `## Files`가 가리키는 코드 줄(범위마다 최대 40줄), 루트의 `README.md`(앞 20,000자). 그 밖의 파일은 읽지 않고, `.env`·키·자격 증명 같은 비밀 파일은 기록이 가리켜도 열지 않습니다.
+- 형식 검사: 형식에 맞지 않는 기록은 거절 코드(`FILE_NAME`, `TOO_LONG`, `FRONT_MATTER`, `ID`, `ENUM`, `TIMESTAMP`, `SECTION`, `OPTIONS`, `CHOSEN`, `CONSEQUENCES`, `VERIFICATION`, `REFERENCES`)와 함께 알려 주고 저장하지 않습니다. 나머지는 저장합니다.
+- 다시 올리기: 같은 기록은 `unchanged`, 바뀐 기록은 `updated`로 세고, 사람의 학습 진행은 남습니다.
+
+### 기록 없이 완성된 프로젝트 (`human-learning-retro`)
+
+결정할 때 기록을 남기지 않은 프로젝트에서 결정을 거꾸로 찾아 기록 초안을 만듭니다. 무엇을 골랐는지는 저장소에서 확인한 사실이고, 당시 검토한 대안과 이유는 AI의 추정이라 모든 초안이 스스로 `AI 초안`이라고 밝힙니다.
+
+대상과 읽는 것:
+
+- git 저장소면 커밋 이력에서 결정이 들어온 날짜와 커밋을 찾습니다. git이 없으면 현재 파일만 읽고 날짜는 쓰지 않습니다.
+- 의존성: `package.json`, `build.gradle(.kts)`, `libs.versions.toml`, `pom.xml`, `requirements*.txt`, `pyproject.toml`, `go.mod`, `Cargo.toml`의 이력에서 의존성이 들어오고 빠진 날짜와 커밋
+- 설정과 인프라: Dockerfile, compose, GitHub Actions·GitLab CI·Jenkins, Terraform, nginx, Vercel·Netlify·Fly·Render, Spring `application*.yml`, 프론트엔드 빌드 설정, `tsconfig`, Prisma, 마이그레이션·k8s·Helm 폴더
+- 그 밖에 README와 문서, 폴더 구조, 구성을 바꾼 커밋. 이 목록 밖의 언어도 에이전트가 코드를 직접 읽어 분석하지만, 의존성 이력은 자동으로 모으지 않습니다.
+
+순서:
+
+1. 기록할 프로젝트에 두 스킬을 설치합니다. `<Backend 저장소>`는 Backend 저장소를 받은 폴더입니다.
+
+```bash
+for skill in human-learning human-learning-retro; do
+  for dir in .claude/skills .agents/skills; do
+    mkdir -p "$dir/$skill" && cp <Backend 저장소>/skill/$skill/SKILL.md <Backend 저장소>/skill/$skill/*.mjs "$dir/$skill"/
+  done
+done
+```
+
+2. 에이전트에게 `human-learning-retro` 스킬로 결정 기록 초안을 만들어 달라고 요청합니다. 에이전트는 `retro.mjs scan`으로 증거를 모으고 코드와 문서를 직접 읽습니다. 저장소는 읽기만 하며 빌드, 설치, 실행, 체크아웃, 커밋을 하지 않습니다.
+3. 에이전트가 결정 후보를 근거(파일 줄, 커밋)와 함께 번호 목록으로 보여 주면 사용자가 고릅니다. 답이 없으면 핵심(`core`) 후보부터 최대 8개를 고르고, 고른 것과 뺀 것을 보고합니다.
+4. 에이전트가 고른 후보마다 초안을 씁니다. `chosen`과 `## Files`는 사실로, 대안과 이유는 추정으로 쓰고, 날짜는 결정이 들어온 커밋의 시각으로 씁니다. 바뀐 결정(빠진 의존성, 교체 커밋)은 기록 두 개와 `supersedes`로 남깁니다. 이미 있는 기록은 고치지 않습니다.
+5. `retro.mjs check`가 초안 표시, 파일 이름, 길이, `## Files` 범위, 비밀 값을 검사합니다(`NAME`, `LENGTH`, `MARK`, `CONFIRM`, `ORIGIN`, `FILES`, `SECRET`). 종료 코드 0일 때만 `sync.mjs`나 `프로젝트 불러오기`로 올립니다.
+
+```bash
+node .claude/skills/human-learning-retro/retro.mjs scan     # 증거 모으기 (읽기 전용)
+node .claude/skills/human-learning-retro/retro.mjs check    # 초안 검사. 0이면 통과
+HL_EMAIL=<앱 계정 이메일> HL_PASSWORD=<앱 계정 비밀번호> node .claude/skills/human-learning/sync.mjs --url <앱 주소>
+```
+
+앱에서는 초안이 일반 기록과 같은 화면에 이렇게 보입니다.
+
+```text
+[AI 초안] 문서 임베딩을 PostgreSQL의 pgvector에 저장한다
+AI 초안: 완성된 코드와 커밋 이력에서 AI가 추정한 기록이다. 선택지는 나중에 조사한 대안이고, 고른 이유는 사람이 확인하지 않은 추정이다.
+추정 근거: 커밋 a1b2c3d가 build.gradle에 PostgreSQL 드라이버와 pgvector를 함께 추가했다
+확신도: 중간 — 이유를 말하는 문서는 없고, 설정이 DB 하나짜리 구성을 보여 준다
+```
+
+- 에이전트의 선택을 예측하는 학습은 그대로 씁니다. 무엇을 골랐는지는 사실이기 때문입니다.
+- 이유는 `확신도`(높음: 커밋·문서가 이유를 직접 말함, 중간: 코드와 설정이 뒷받침함, 낮음: 일반 지식으로 추정)를 보고 믿을 정도를 정합니다. `낮음`은 그 기술의 일반적인 장단점 공부로만 씁니다.
+- 확정: 사람이 당시 선택지와 이유를 알려 주면 초안을 고쳐 `origin: ai-retro-confirmed`로 바꾸고 초안 표시를 지운 뒤 다시 올립니다. 앱은 그 결정을 `updated`로 세고 퀴즈를 새로 만들며, 학습 진행은 남깁니다.
+- 그 뒤에 내리는 결정은 `human-learning` 스킬로 결정할 때 바로 기록합니다. 번호는 초안 다음부터 이어집니다.
+
+### 올린 뒤 분석되는 방식 (두 경우 같음)
+
+서버는 프로젝트 폴더를 직접 읽지 않고, 받은 기록·코드 줄·README만으로 아래를 만듭니다. Anthropic API 키와 모델이 있으면 LLM이 쓰고(동시에 최대 4개 호출), 없거나 호출이 실패하면 기록으로 만든 템플릿이 그 항목을 씁니다.
+
+| 받은 것 | 만들어지는 것 | 앱에서 보는 곳 |
+| --- | --- | --- |
+| 기록 전체의 제목, 요약, 수준 | 프로젝트 교과서의 목표와 전체 구조 | 프로젝트 문서 |
+| `README.md` | 프로젝트 요약 2~4문장 (템플릿이면 README의 첫 산문 문단 400자) | 프로젝트 문서의 목표 아래 |
+| 기록의 `level`, `importance`, `parent`, `supersedes`, `timestamp` | 설계·구현·검증으로 나눈 결정 지도와 시간순 보기, 바뀐 결정 표시, 이해 부채의 무게(핵심 3, 보통 1, 사소 0) | `결정 지도` |
+| 결정 하나의 상황, 선택지, 이유, 얻은 것과 포기한 것, 검증 | 예측 뒤에 열리는 결정 문서, 퀴즈 3문항(고른 이유, 다른 선택지라면 달라지는 것, 자기 설명) | 결정 문서, `퀴즈` |
+| `## Files`의 코드 줄 | 결정 문서 안의 코드 (없는 파일은 `파일 없음`) | 결정 문서 |
+| 기록의 `technologies`와 개념 이름 | 기술마다 기술 교과서(무엇인가, 푸는 문제, 공식 문서 링크)와 개념마다 카드(정의, 설명, Mermaid 도식, 선행 개념). 사용자의 모든 프로젝트가 함께 씁니다 | `기술 교과서`, `개념 학습`, 프로젝트의 `개념 지도` |
+| 여러 프로젝트의 같은 기술·개념 | 프로젝트와 기술 교과서를 잇는 지도, 개념마다 쓰인 프로젝트 수 | `프로젝트 연결` |
+
+- LLM이 켜져 있으면 결정 기록의 내용과 README가 Anthropic API로 나갑니다. 보내기 전에 32자 이상 이어진 키 모양 문자열은 `[masked]`로 가립니다.
+- LLM 생성은 기록 수에 비례해 시간이 걸립니다. 기록 n개면 호출 약 `2n + 2`개이고, 보통 `올림((2n+2)/4) × 10초`, 길면 `× 30초`입니다. 템플릿으로 대체된 항목은 동기화 결과(`sync.mjs`의 `fallback` 줄, 앱의 불러오기 결과)에 나오고, 다시 올리면 생성을 다시 시도합니다.
 
 ## 구조
 
